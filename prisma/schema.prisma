@@ -1,0 +1,71 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String       @id @default(cuid())
+  name      String
+  email     String?      @unique
+  phone     String?
+  createdAt DateTime     @default(now())
+  trips     TripMember[]
+  expenses  Expense[]
+}
+
+model Trip {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  startDate   DateTime
+  endDate     DateTime?
+  currency    String       @default("USD") // default currency for the trip
+  createdAt   DateTime     @default(now())
+  members     TripMember[]
+  expenses    Expense[]
+}
+
+model TripMember {
+  id       String   @id @default(cuid())
+  tripId   String
+  userId   String
+  role     String   @default("member") // admin or member
+  joinedAt DateTime @default(now())
+  trip     Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, userId])
+}
+
+model Expense {
+  id          String         @id @default(cuid())
+  tripId      String
+  paidById    String
+  amount      Float
+  currency    String         @default("USD")
+  description String
+  category    String?
+  date        DateTime       @default(now())
+  splitType   String // "equal", "custom", "pair"
+  createdAt   DateTime       @default(now())
+  trip        Trip           @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  paidBy      User           @relation(fields: [paidById], references: [id])
+  splits      ExpenseSplit[]
+}
+
+model ExpenseSplit {
+  id        String  @id @default(cuid())
+  expenseId String
+  userId    String
+  amount    Float // how much this user owes for this expense
+  settled   Boolean @default(false)
+  expense   Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+
+  @@unique([expenseId, userId])
+}
