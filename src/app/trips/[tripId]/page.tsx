@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, Plus, Users, Receipt, TrendingUp, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AddExpenseModal } from '@/components/add-expense-modal';
 
 interface TripData {
   trip: {
@@ -58,7 +59,7 @@ export default function TripDashboard({
   const [loading, setLoading] = useState(true);
   const [showAddExpense, setShowAddExpense] = useState(false);
 
-  useEffect(() => {
+  const loadData = () => {
     fetch(`/api/trips/${tripId}`)
       .then(res => res.json())
       .then(data => {
@@ -66,6 +67,10 @@ export default function TripDashboard({
         setLoading(false);
       })
       .catch(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadData();
   }, [tripId]);
 
   if (loading) {
@@ -315,6 +320,18 @@ export default function TripDashboard({
           </div>
         </div>
       </div>
+
+      {/* Add Expense Modal */}
+      {showAddExpense && data && (
+        <AddExpenseModal
+          tripId={tripId}
+          currency={trip.currency}
+          members={trip.members.map(m => ({ id: m.user.id, name: m.user.name }))}
+          currentUserId={trip.members[0]?.user.id}
+          onClose={() => setShowAddExpense(false)}
+          onSuccess={loadData}
+        />
+      )}
     </div>
   );
 }
