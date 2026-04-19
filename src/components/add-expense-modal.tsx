@@ -1,11 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { X, DollarSign } from 'lucide-react';
+import { X, DollarSign, Info } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { COMMON_CURRENCIES } from '@/lib/currency';
+import { useToast } from './ui/toast';
+
+const selectClass =
+  'flex h-11 w-full rounded-xl border border-white/10 bg-white/[0.06] px-4 py-2 text-sm text-white transition-colors focus:outline-none focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20 [&>option]:bg-slate-900 [&>option]:text-white';
+
+const labelClass = 'text-sm font-medium text-slate-300 mb-2 block';
 
 interface Member {
   id: string;
@@ -17,6 +23,7 @@ interface AddExpenseModalProps {
   currency: string;
   members: Member[];
   currentUserId?: string;
+  userRole?: 'creator' | 'member';
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -26,9 +33,11 @@ export function AddExpenseModal({
   currency,
   members,
   currentUserId,
+  userRole,
   onClose,
   onSuccess,
 }: AddExpenseModalProps) {
+  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     description: '',
@@ -38,6 +47,8 @@ export function AddExpenseModal({
     splitType: 'equal' as 'equal' | 'custom' | 'pair',
     splitWith: [] as string[],
   });
+
+  const isMember = userRole === 'member';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,51 +70,63 @@ export function AddExpenseModal({
       });
 
       if (response.ok) {
+        const data = await response.json();
+        if (data.pending) {
+          toast.success('Expense submitted for approval');
+        } else {
+          toast.success('Expense added successfully');
+        }
         onSuccess();
         onClose();
       } else {
-        alert('Failed to add expense');
+        toast.error('Failed to add expense');
         setLoading(false);
       }
     } catch (error) {
       console.error(error);
-      alert('Failed to add expense');
+      toast.error('Failed to add expense');
       setLoading(false);
     }
   };
 
   const toggleMember = (memberId: string) => {
-    if (formData.splitWith.includes(memberId)) {
-      setFormData({
-        ...formData,
-        splitWith: formData.splitWith.filter(id => id !== memberId),
-      });
-    } else {
-      setFormData({
-        ...formData,
-        splitWith: [...formData.splitWith, memberId],
-      });
-    }
+    setFormData({
+      ...formData,
+      splitWith: formData.splitWith.includes(memberId)
+        ? formData.splitWith.filter(id => id !== memberId)
+        : [...formData.splitWith, memberId],
+    });
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <CardHeader className="border-b">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto bg-[#0D1530]/95 backdrop-blur-xl border-white/[0.1]">
+        <CardHeader className="border-b border-white/[0.08]">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
-              <DollarSign className="w-5 h-5" />
-              Add Expense
+              <DollarSign className="w-5 h-5 text-amber-400" />
+              {isMember ? 'Submit Expense' : 'Add Expense'}
             </CardTitle>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white"
+              aria-label="Close modal"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         </CardHeader>
         <CardContent className="pt-6">
+          {/* Member info banner */}
+          {isMember && (
+            <div className="flex items-start gap-3 p-3 mb-6 rounded-xl bg-amber-500/[0.08] border border-amber-500/20">
+              <Info className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+              <p className="text-sm text-amber-200/80">
+                This expense will be sent to the trip creator for approval.
+              </p>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Description */}
             <Input
@@ -114,23 +137,24 @@ export function AddExpenseModal({
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             />
 
-            {/* Amount & Currency */}
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                label="Amount"
-                type="number"
-                step="0.01"
-                placeholder="0.00"
-                required
-                value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-              />
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">
-                  Currency
-                </label>
+            {/* Amount & Currency — inline so currency is impossible to miss */}
+            <div>
+              <label className={labelClass}>
+                Amount <span className="text-red-400">*</span>
+              </label>
+              <div className="flex rounded-xl border border-white/10 bg-white/[0.06] overflow-hidden focus-within:border-amber-500/50 focus-within:ring-2 focus-within:ring-amber-500/20">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  required
+                  value={formData.amount}
+                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                  className="flex-1 h-11 px-4 bg-transparent text-sm text-white placeholder:text-slate-500 focus:outline-none"
+                />
                 <select
-                  className="flex h-11 w-full rounded-lg border-2 border-gray-200 bg-white px-4 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:border-blue-500 focus-visible:ring-4 focus-visible:ring-blue-500/20"
+                  className="h-11 px-3 bg-white/[0.08] border-l border-white/10 text-sm font-semibold text-amber-400 focus:outline-none cursor-pointer [&>option]:bg-slate-900 [&>option]:text-white"
                   value={formData.currency}
                   onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
                 >
@@ -145,12 +169,12 @@ export function AddExpenseModal({
 
             {/* Who Paid */}
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">
-                Who paid? <span className="text-red-500">*</span>
+              <label className={labelClass}>
+                Who paid? <span className="text-red-400">*</span>
               </label>
               <select
                 required
-                className="flex h-11 w-full rounded-lg border-2 border-gray-200 bg-white px-4 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:border-blue-500 focus-visible:ring-4 focus-visible:ring-blue-500/20"
+                className={selectClass}
                 value={formData.paidById}
                 onChange={(e) => setFormData({ ...formData, paidById: e.target.value })}
               >
@@ -164,70 +188,51 @@ export function AddExpenseModal({
 
             {/* Split Type */}
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-3 block">
-                How to split?
-              </label>
+              <label className={labelClass}>How to split?</label>
               <div className="space-y-2">
-                <label className="flex items-center gap-3 p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-500 transition-colors">
-                  <input
-                    type="radio"
-                    name="splitType"
-                    value="equal"
-                    checked={formData.splitType === 'equal'}
-                    onChange={(e) => setFormData({ ...formData, splitType: 'equal', splitWith: [] })}
-                    className="w-4 h-4 text-blue-600"
-                  />
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-900">Split equally</div>
-                    <div className="text-sm text-gray-600">Everyone shares this expense</div>
-                  </div>
-                </label>
-
-                <label className="flex items-center gap-3 p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-500 transition-colors">
-                  <input
-                    type="radio"
-                    name="splitType"
-                    value="custom"
-                    checked={formData.splitType === 'custom'}
-                    onChange={(e) => setFormData({ ...formData, splitType: 'custom', splitWith: [] })}
-                    className="w-4 h-4 text-blue-600"
-                  />
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-900">Select people</div>
-                    <div className="text-sm text-gray-600">Choose who shares this</div>
-                  </div>
-                </label>
-
-                <label className="flex items-center gap-3 p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-500 transition-colors">
-                  <input
-                    type="radio"
-                    name="splitType"
-                    value="pair"
-                    checked={formData.splitType === 'pair'}
-                    onChange={(e) => setFormData({ ...formData, splitType: 'pair', splitWith: [] })}
-                    className="w-4 h-4 text-blue-600"
-                  />
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-900">Between two people</div>
-                    <div className="text-sm text-gray-600">One paid for another</div>
-                  </div>
-                </label>
+                {[
+                  { value: 'equal', title: 'Split equally', desc: 'Everyone shares this expense' },
+                  { value: 'custom', title: 'Select people', desc: 'Choose who shares this' },
+                  { value: 'pair', title: 'Between two people', desc: 'One paid for another' },
+                ].map(({ value, title, desc }) => (
+                  <label
+                    key={value}
+                    className={`flex items-center gap-3 p-4 border rounded-xl cursor-pointer transition-all ${
+                      formData.splitType === value
+                        ? 'border-amber-500/60 bg-amber-500/10'
+                        : 'border-white/10 bg-white/[0.04] hover:border-white/20 hover:bg-white/[0.06]'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="splitType"
+                      value={value}
+                      checked={formData.splitType === value}
+                      onChange={() => setFormData({ ...formData, splitType: value as 'equal' | 'custom' | 'pair', splitWith: [] })}
+                      className="w-4 h-4 accent-amber-500"
+                    />
+                    <div className="flex-1">
+                      <div className="font-medium text-white">{title}</div>
+                      <div className="text-sm text-slate-400">{desc}</div>
+                    </div>
+                  </label>
+                ))}
               </div>
             </div>
 
             {/* Select Members (for custom or pair) */}
             {(formData.splitType === 'custom' || formData.splitType === 'pair') && (
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-3 block">
+                <label className={labelClass}>
                   {formData.splitType === 'pair' ? 'Select one person' : 'Select people to split with'}
                 </label>
                 <div className="space-y-2">
                   {members
-                    .filter(m => m.id !== formData.paidById) // Don't show the payer
+                    .filter(m => m.id !== formData.paidById)
                     .map((member) => (
                       <label
                         key={member.id}
-                        className="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                        className="flex items-center gap-3 p-3 border border-white/10 bg-white/[0.04] rounded-xl cursor-pointer hover:bg-white/[0.07] transition-colors"
                       >
                         <input
                           type={formData.splitType === 'pair' ? 'radio' : 'checkbox'}
@@ -239,9 +244,9 @@ export function AddExpenseModal({
                               toggleMember(member.id);
                             }
                           }}
-                          className="w-4 h-4 text-blue-600"
+                          className="w-4 h-4 accent-amber-500"
                         />
-                        <span className="font-medium text-gray-900">{member.name}</span>
+                        <span className="font-medium text-white">{member.name}</span>
                       </label>
                     ))}
                 </div>
@@ -250,20 +255,14 @@ export function AddExpenseModal({
 
             {/* Submit */}
             <div className="flex gap-4 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                className="flex-1"
-                onClick={onClose}
-              >
+              <Button type="button" variant="outline" className="flex-1" onClick={onClose}>
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                className="flex-1"
-                disabled={loading}
-              >
-                {loading ? 'Adding...' : 'Add Expense'}
+              <Button type="submit" className="flex-1" disabled={loading}>
+                {loading
+                  ? (isMember ? 'Submitting...' : 'Adding...')
+                  : (isMember ? 'Submit for Approval' : 'Add Expense')
+                }
               </Button>
             </div>
           </form>

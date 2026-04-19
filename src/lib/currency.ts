@@ -70,6 +70,19 @@ export async function convertCurrency(
   return Number((amount * rate).toFixed(2));
 }
 
+/**
+ * Convert an amount from any currency to USD.
+ * Uses USD-based rates: rates.X = units of X per 1 USD.
+ * So amount_in_from / rates[from] = amount_in_USD.
+ */
+export async function toUsd(amount: number, from: string): Promise<number> {
+  if (from === 'USD') return amount;
+  const { rates } = await getExchangeRates('USD');
+  const rate = rates[from];
+  if (!rate) return amount; // unknown currency — store as-is
+  return Number((amount / rate).toFixed(6));
+}
+
 export const COMMON_CURRENCIES = [
   { code: 'USD', symbol: '$', name: 'US Dollar' },
   { code: 'EUR', symbol: '€', name: 'Euro' },
