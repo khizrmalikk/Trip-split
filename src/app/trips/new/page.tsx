@@ -55,11 +55,11 @@ export default function NewTripPage() {
   return (
     <>
       <Navbar />
-      <div className="min-h-screen py-12 px-4">
+      <div className="min-h-screen py-6 sm:py-12 px-4">
         <div className="max-w-2xl mx-auto">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-white mb-2">Create a Trip</h1>
+          <div className="mb-6 sm:mb-8">
+            <h1 className="text-2xl sm:text-4xl font-bold text-white mb-2">Create a Trip</h1>
             <p className="text-slate-400">Set up a new trip to start tracking expenses with your friends</p>
           </div>
 

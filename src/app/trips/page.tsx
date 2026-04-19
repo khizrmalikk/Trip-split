@@ -31,9 +31,9 @@ function TripsListSkeleton() {
   return (
     <>
     <Navbar />
-    <div className="min-h-screen py-12 px-4">
+    <div className="min-h-screen py-6 sm:py-12 px-4">
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-10">
+        <div className="flex items-center justify-between mb-6 sm:mb-10">
           <div>
             <Skeleton className="h-8 w-40 mb-2" />
             <Skeleton className="h-5 w-64" />
@@ -91,11 +91,11 @@ export default function TripsPage() {
   return (
     <>
     <Navbar />
-    <div className="min-h-screen py-12 px-4">
+    <div className="min-h-screen py-6 sm:py-12 px-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="mb-10">
-          <h1 className="text-3xl font-bold text-white tracking-tight">Your Trips</h1>
+        <div className="mb-6 sm:mb-10">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Your Trips</h1>
           <p className="text-slate-400 mt-1">
             {trips.length > 0
               ? `${trips.length} trip${trips.length > 1 ? 's' : ''} tracked`
@@ -105,7 +105,7 @@ export default function TripsPage() {
 
         {trips.length === 0 ? (
           /* ---- Empty state ---- */
-          <div className="bg-white/[0.05] backdrop-blur-md rounded-2xl border border-dashed border-white/[0.15] p-16 text-center">
+          <div className="bg-white/[0.05] backdrop-blur-md rounded-2xl border border-dashed border-white/[0.15] p-8 sm:p-16 text-center">
             <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-amber-500/15 border border-amber-500/25">
               <MapPin className="h-10 w-10 text-amber-400" />
             </div>
