@@ -101,7 +101,7 @@ export function Navbar() {
           {isLoaded && isSignedIn ? (
             <>
               <NotificationBell />
-              <UserButton afterSignOutUrl="/" />
+              <UserButton />
             </>
           ) : isLoaded ? (
             <Link
